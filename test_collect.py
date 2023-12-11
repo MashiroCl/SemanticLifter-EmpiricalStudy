@@ -1,7 +1,9 @@
 import unittest
 # from collect_commit import *
 import pathlib
-from collect_commit import Repository, to_method_level_files, parse_commit_infoblock, git_log_with_name_status, extract_within_method_refactor_commit
+from collect_commit import (Repository, to_method_level_files, parse_commit_infoblock,
+                            git_log_with_name_status, extract_within_method_refactor_commit,
+                            is_refactor_commit, is_mjava ,CommitInfo)
 from config import load_config, logging_config
 
 
@@ -13,6 +15,10 @@ class TestCollect(unittest.TestCase):
         self.repository_mbassador = Repository(pathlib.Path(self.config["mbassador"]))
         self.method_level_repository_output_path = pathlib.Path(self.config["method_level_repository_output_path"])
         self.repository_presto = Repository(pathlib.Path(self.config["presto"]))
+        self.repository_jetuml = Repository(pathlib.Path(self.config["jetuml"]))
+        self.repository_cascading = Repository(pathlib.Path(self.config["cascading"]))
+        self.repository_blueflood = Repository(pathlib.Path(self.config["blueflood"]))
+
 
     def test_to_method_level_files_mbassador(self):
         to_method_level_files(self.repository_mbassador, pathlib.Path(str(self.method_level_repository_output_path)+"/mbassador_finergit"))
@@ -66,6 +72,21 @@ class TestCollect(unittest.TestCase):
         data = git_log_with_name_status(self.method_level_repository_output_path.joinpath("mbassador_finergit"))
         self.assertEqual(len(data), 671)
 
+    def test_is_refactor_commit_positive(self):
+        res = is_refactor_commit(CommitInfo("123", "123", ['', '    Small refactorings with minor API changes. Increased test coverage'], "123"))
+        self.assertTrue(res)
+
+    def test_is_refactor_commit_negative(self):
+        res = is_refactor_commit(CommitInfo("123", "123", ["this is a refatoring", "lalala"], "123"))
+        self.assertFalse(res)
+
+    def test_is_mjava_positive(self):
+        res = is_mjava(CommitInfo("123", "123", ["this is a refatoring", "lalala"], "M\ttest.mjava"))
+        self.assertFalse(res)
+
+    def test_is_mjava_positive(self):
+        res = is_mjava(CommitInfo("123", "123", ["this is a refatoring", "lalala"], "M\ttest.xml"))
+        self.assertFalse(res)
 
     def test_extract_within_method_change_commit_mbassador(self):
         data = extract_within_method_refactor_commit(self.repository_mbassador.path,
@@ -78,3 +99,24 @@ class TestCollect(unittest.TestCase):
                                                              "presto_finergit"),
                                                          self.method_level_repository_output_path.joinpath(
                                                              "presto_withinmethod_refactor.json"))
+
+    def test_extract_within_method_change_commit_jetuml(self):
+            data = extract_within_method_refactor_commit(self.repository_jetuml.path,
+                                                         self.method_level_repository_output_path.joinpath(
+                                                             "jetuml_finergit"),
+                                                         self.method_level_repository_output_path.joinpath(
+                                                             "jetuml_withinmethod_refactor.json"))
+
+    def test_extract_within_method_change_commit_cascading(self):
+            data = extract_within_method_refactor_commit(self.repository_cascading.path,
+                                                         self.method_level_repository_output_path.joinpath(
+                                                             "cascading_finergit"),
+                                                         self.method_level_repository_output_path.joinpath(
+                                                             "cascading_withinmethod_refactor.json"))
+
+    def test_extract_within_method_change_blueflood(self):
+            data = extract_within_method_refactor_commit(self.repository_blueflood.path,
+                                                         self.method_level_repository_output_path.joinpath(
+                                                             "blueflood_finergit"),
+                                                         self.method_level_repository_output_path.joinpath(
+                                                             "blueflood_withinmethod_refactor.json"))

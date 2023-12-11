@@ -49,7 +49,8 @@ def parse_commit_infoblock(infoblock: list[str]):
     res["message"] = []
     res["files_status"] = []
     isafterNotes = False
-    for i in range(1, len(infoblock)):
+    i=1
+    while i < len(infoblock):
         infoblock[i] = infoblock[i].strip()
 
         # commit message
@@ -58,6 +59,7 @@ def parse_commit_infoblock(infoblock: list[str]):
                 if is_commit_Notes(infoblock[j], infoblock[j + 1]):
                     res["message"] = infoblock[i + 2:j - 1]
                     i = j
+                    break
 
         # file status
         if isafterNotes:
@@ -68,6 +70,7 @@ def parse_commit_infoblock(infoblock: list[str]):
         if is_commit_Notes(infoblock[i - 1], infoblock[i]):
             res["Notes"] = infoblock[i].strip()
             isafterNotes = True
+        i += 1
     return res
 
 
@@ -83,12 +86,18 @@ def seperate_by_commit(commitInfos):
     infoblocks = []
 
     commitInfos = commitInfos.split("\n")
-    for i in range(len(commitInfos) - 1):
+    i = 0
+
+    # starts from "commit xxxx", ends at "Note: "
+    while i < len(commitInfos) - 1:
         if is_commit_line(commitInfos[i], commitInfos[i + 1]):
             for j in range(i + 1, len(commitInfos)):
-                if j == len(commitInfos) - 1 or is_commit_line(commitInfos[j], commitInfos[j + 1]):
-                    infoblocks.append(commitInfos[i:j])
-                    i = j
+                # if j == len(commitInfos) - 1 or is_commit_line(commitInfos[j], commitInfos[j + 1]):
+                if j == len(commitInfos) - 1 or is_commit_Notes(commitInfos[j], commitInfos[j + 1]):
+                    infoblocks.append(commitInfos[i:j+2])
+                    i = j + 2
+                    break
+        i += 1
     return infoblocks
 
 
@@ -108,6 +117,7 @@ def git_log_with_name_status(git_path: pathlib.Path):
     infoblocks = seperate_by_commit(commitHistory)
     for infoblock in infoblocks:
         parsed = parse_commit_infoblock(infoblock)
+        logging.info("parsing " + parsed["sha1"])
         commitInfos.append(CommitInfo(parsed["sha1"], parsed["Notes"], parsed["message"], parsed["files_status"]))
 
     logging.info(f"finished parsing {len(commitInfos)} commitInfos")
@@ -140,7 +150,7 @@ def is_within_method_change(commitInfo: CommitInfo):
 
 def is_refactor_commit(commitInfo: CommitInfo):
     if len(commitInfo.message) > 0 and (any("refactor" in each for each in commitInfo.message)
-                                         or any("restruct" in each for each in commitInfo.message)):
+                                        or any("restruct" in each for each in commitInfo.message)):
         return True
     return False
 
@@ -151,7 +161,7 @@ def is_mjava(commitInfo: CommitInfo):
     :param commitInfo:
     :return:
     """
-    if len(commitInfo.change_status) >0 and any(".mjava" in each for each in commitInfo.change_status):
+    if len(commitInfo.change_status) > 0 and any(".mjava" in each for each in commitInfo.change_status):
         return True
     return False
 
@@ -178,7 +188,8 @@ def extract_within_method_refactor_commit(repository_path, output_repository_pat
     repository_path = pathlib.Path(repository_path)
     output_repository_path = pathlib.Path(output_repository_path)
 
-    to_method_level_files(Repository(repository_path), output_repository_path)
+    if not output_repository_path.exists():
+        to_method_level_files(Repository(repository_path), output_repository_path)
     commitInfos = git_log_with_name_status(output_repository_path)
 
     # write into json
