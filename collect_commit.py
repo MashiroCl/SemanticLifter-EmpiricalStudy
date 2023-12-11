@@ -96,11 +96,17 @@ def seperate_by_commit(commitInfos):
                 # ensure j is after "Note: "
                 if j < len(commitInfos) - 1 and is_commit_Notes(commitInfos[j], commitInfos[j + 1]):
                     afterNotes = True
+                # the end of commit history
+                if j == len(commitInfos) - 1:
+                    infoblocks.append(commitInfos[i:j+1])
+                    i = j - 1
+                    break
                 # the "commit xxx" after "Note: "
-                if j == len(commitInfos) - 1 or (afterNotes and is_commit_line(commitInfos[j], commitInfos[j + 1])):
+                if afterNotes and is_commit_line(commitInfos[j], commitInfos[j + 1]):
                     infoblocks.append(commitInfos[i:j])
                     i = j - 1
                     break
+
         i += 1
     return infoblocks
 
