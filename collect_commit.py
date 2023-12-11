@@ -47,9 +47,9 @@ def parse_commit_infoblock(infoblock: list[str]):
         raise ValueError("parse commit error, infoblock: \n", infoblock)
     res["sha1"] = infoblock[0].split("commit ")[1]
     res["message"] = []
-    res["files_status"] = []
+    res["change_status"] = []
     isafterNotes = False
-    i=1
+    i = 1
     while i < len(infoblock):
         infoblock[i] = infoblock[i].strip()
 
@@ -64,7 +64,7 @@ def parse_commit_infoblock(infoblock: list[str]):
         # file status
         if isafterNotes:
             if len(infoblock[i]) > 0:
-                res["files_status"].append(infoblock[i])
+                res["change_status"].append(infoblock[i])
 
         # Notes
         if is_commit_Notes(infoblock[i - 1], infoblock[i]):
@@ -88,14 +88,18 @@ def seperate_by_commit(commitInfos):
     commitInfos = commitInfos.split("\n")
     i = 0
 
-    # starts from "commit xxxx", ends at "Note: "
+    # each commit starts from "commit xxxx", ends at the "commit xxx" after "Note: "
     while i < len(commitInfos) - 1:
         if is_commit_line(commitInfos[i], commitInfos[i + 1]):
+            afterNotes = False
             for j in range(i + 1, len(commitInfos)):
-                # if j == len(commitInfos) - 1 or is_commit_line(commitInfos[j], commitInfos[j + 1]):
-                if j == len(commitInfos) - 1 or is_commit_Notes(commitInfos[j], commitInfos[j + 1]):
-                    infoblocks.append(commitInfos[i:j+2])
-                    i = j + 2
+                # ensure j is after "Note: "
+                if j < len(commitInfos) - 1 and is_commit_Notes(commitInfos[j], commitInfos[j + 1]):
+                    afterNotes = True
+                # the "commit xxx" after "Note: "
+                if j == len(commitInfos) - 1 or (afterNotes and is_commit_line(commitInfos[j], commitInfos[j + 1])):
+                    infoblocks.append(commitInfos[i:j])
+                    i = j - 1
                     break
         i += 1
     return infoblocks
@@ -118,7 +122,7 @@ def git_log_with_name_status(git_path: pathlib.Path):
     for infoblock in infoblocks:
         parsed = parse_commit_infoblock(infoblock)
         logging.info("parsing " + parsed["sha1"])
-        commitInfos.append(CommitInfo(parsed["sha1"], parsed["Notes"], parsed["message"], parsed["files_status"]))
+        commitInfos.append(CommitInfo(parsed["sha1"], parsed["Notes"], parsed["message"], parsed["change_status"]))
 
     logging.info(f"finished parsing {len(commitInfos)} commitInfos")
 

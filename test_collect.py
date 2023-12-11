@@ -38,7 +38,7 @@ class TestCollect(unittest.TestCase):
         res = parse_commit_infoblock(infoblock.split("\n"))
         self.assertEqual(res["sha1"], "c7d38a48fd4577103c53b82eea80452e4f6c8f71")
         self.assertEqual(res["Notes"], "521ce6e6d96c238b14eb2e0c83e5ffadba8c3785")
-        self.assertEqual(len(res["files_status"]), 0)
+        self.assertEqual(len(res["change_status"]), 0)
 
     def test_parse_commit_infoblock2(self):
         infoblock = """commit c0a1f84cef0ff7ba6cb80cd3b0498b3ff9d604d2
@@ -65,7 +65,7 @@ class TestCollect(unittest.TestCase):
         res = parse_commit_infoblock(infoblock.split("\n"))
         self.assertEqual(res["sha1"], "c0a1f84cef0ff7ba6cb80cd3b0498b3ff9d604d2")
         self.assertEqual(res["Notes"], "499ae3a4a3beb4c20de6d856a3eadeb7aaa0119b")
-        self.assertEqual(len(res["files_status"]), 1)
+        self.assertEqual(len(res["change_status"]), 1)
 
 
     def test_git_log_with_name_status(self):
