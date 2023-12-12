@@ -4,15 +4,22 @@ import subprocess
 import re
 from config import load_config
 import json
-
+from typing import List
 
 class Repository:
     def __init__(self, path: pathlib.Path):
+        if isinstance(path, str):
+            path = pathlib.Path(path)
         self.path = path
+        self.name = path.name
+
+    def add_remote(self):
+        command = f"git --git-dir {self.path.joinpath('.git')} remote add origin https://example.jp/dummy_url.git)"
+        subprocess.getoutput(command)
 
 
 class CommitInfo:
-    def __init__(self, commitID: str, notes: str, message: list[str], change_status: list[str]):
+    def __init__(self, commitID: str, notes: str, message: List[str], change_status: List[str]):
         self.commitID = commitID
         self.notes = notes
         self.message = message
@@ -41,7 +48,7 @@ def is_commit_Notes(line: str, nextline: str) -> bool:
     return False
 
 
-def parse_commit_infoblock(infoblock: list[str]):
+def parse_commit_infoblock(infoblock: List[str]):
     res = {}
     if len(infoblock) < 1 or "commit" not in infoblock[0]:
         raise ValueError("parse commit error, infoblock: \n", infoblock)
@@ -98,7 +105,7 @@ def seperate_by_commit(commitInfos):
                     afterNotes = True
                 # the end of commit history
                 if j == len(commitInfos) - 1:
-                    infoblocks.append(commitInfos[i:j+1])
+                    infoblocks.append(commitInfos[i:j + 1])
                     i = j - 1
                     break
                 # the "commit xxx" after "Note: "
@@ -193,11 +200,18 @@ def commit_info_encoder(obj):
     return obj
 
 
-def extract_within_method_refactor_commit(repository_path, output_repository_path, within_method_refactor_json,
-                                          commitInfo_output_json=None):
+def extract_within_method_refactor_commit(repository_path, output_repository_path, output_json=None,
+                                          commitInfo_output_json=None) -> List[CommitInfo]:
+    """
+    transfer the repository into method level one and extract the within-method-refactor-commit into json
+    :param repository_path:
+    :param output_repository_path:
+    :param output_json:
+    :param commitInfo_output_json:
+    :return:
+    """
     repository_path = pathlib.Path(repository_path)
     output_repository_path = pathlib.Path(output_repository_path)
-
     if not output_repository_path.exists():
         to_method_level_files(Repository(repository_path), output_repository_path)
     commitInfos = git_log_with_name_status(output_repository_path)
@@ -208,12 +222,29 @@ def extract_within_method_refactor_commit(repository_path, output_repository_pat
             json.dump(commitInfos, f, default=commit_info_encoder)
 
     within_method_refactor = []
-
     for commitInfo in commitInfos:
         if is_within_method_change(commitInfo) and is_mjava(commitInfo) and is_refactor_commit(commitInfo):
             within_method_refactor.append(commitInfo)
 
-    with open(within_method_refactor_json, "w") as f:
-        json.dump(within_method_refactor, f, default=commit_info_encoder)
+    # write into a json file if the path is provided
+    if output_json:
+        with open(output_json, "w") as f:
+            json.dump(within_method_refactor, f, default=commit_info_encoder)
 
-    logging.info(f"written {len(within_method_refactor)} into {within_method_refactor_json}")
+        logging.info(f"written {len(within_method_refactor)} into {output_json}")
+    return within_method_refactor
+
+
+def detect_with_RefactoringMiner(RefactoringMienr_path: pathlib.Path, repository: Repository, commitInfo: CommitInfo,
+                                 output_path: pathlib.Path):
+    """
+
+    :param repository: original repository (not the method-level one)
+    :param commitInfo:
+    :param output_path:
+    :return:
+    """
+    logging.info("RM detect for " + str(repository.path) + " " + commitInfo.commitID + "-" + commitInfo.notes)
+    command = f"{str(RefactoringMienr_path)} -c {str(repository.path)} {commitInfo.notes} -json {str(output_path.joinpath(commitInfo.notes + '.json'))}"
+    print(command)
+    subprocess.getoutput(command)

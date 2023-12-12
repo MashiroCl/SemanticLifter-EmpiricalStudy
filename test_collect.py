@@ -3,7 +3,7 @@ import unittest
 import pathlib
 from collect_commit import (Repository, to_method_level_files, parse_commit_infoblock,
                             git_log_with_name_status, extract_within_method_refactor_commit,
-                            is_refactor_commit, is_mjava ,CommitInfo)
+                            is_refactor_commit, is_mjava ,CommitInfo, detect_with_RefactoringMiner)
 from config import load_config, logging_config
 
 
@@ -120,3 +120,14 @@ class TestCollect(unittest.TestCase):
                                                              "blueflood_finergit"),
                                                          self.method_level_repository_output_path.joinpath(
                                                              "blueflood_withinmethod_refactor.json"))
+
+
+    def test_detect_with_RefactoringMiner(self):
+        config = load_config()
+        detect_with_RefactoringMiner(config["RefactoringMiner"]
+                                    ,self.repository_presto,
+                                     CommitInfo("3fda18eef4f335c4c1e3abf350617b81b576943e",
+                                                                        "372956ca33a29917a101c8279daf6794ebda5508",
+                                                                        list(),
+                                                                        list()),
+                                     pathlib.Path("./"))
