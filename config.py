@@ -8,6 +8,6 @@ def load_config():
     return data
 
 
-def logging_config():
-    logging.basicConfig(filename=load_config()["log_file"], level=logging.DEBUG,
+def logging_config(log_file_path: str = "./commit_collect.log"):
+    logging.basicConfig(filename=log_file_path, level=logging.DEBUG,
                         format='%(asctime)s - %(levelname)s - %(message)s')
