@@ -152,7 +152,9 @@ def to_method_level_files(repository: Repository, output_repository_path: pathli
     :return:
     """
     git_stein_path = load_config()["git-stein"]
-    command = f"java -jar {git_stein_path}git-stein.jar {str(repository.path)} -o {str(output_repository_path)} @historage-jdt --no-original --no-classes --no-fields"
+    # command = f"java -jar {git_stein_path}git-stein.jar {str(repository.path)} -o {str(output_repository_path)} @historage-jdt --no-original --no-classes --no-fields"
+    # add --parsable for gumtree to parse
+    command = f"java -jar {git_stein_path}git-stein.jar {str(repository.path)} -o {str(output_repository_path)} @historage-jdt --no-original --no-classes --no-fields --parsable"
 
     logging.info(msg="running command: {}".format(command))
     subprocess.getoutput(command)
